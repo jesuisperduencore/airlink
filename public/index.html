@@ -1,0 +1,875 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>AirLink – Partage instantané</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <style>
+    :root {
+      --bg-grad-start: #050816;
+      --bg-grad-mid: #111827;
+      --bg-grad-end: #020617;
+      --glass-bg: rgba(15, 23, 42, 0.75);
+      --glass-border: rgba(148, 163, 184, 0.45);
+      --text-main: #e5e7eb;
+      --text-muted: #94a3b8;
+      --accent: #6366f1;
+      --accent2: #ec4899;
+      --accent-soft: rgba(94, 234, 212, 0.16);
+      --radius-lg: 20px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: radial-gradient(circle at top, var(--bg-grad-mid) 0, var(--bg-grad-start) 40%, var(--bg-grad-end) 100%);
+      color: var(--text-main);
+      position: relative;
+      overflow-x: hidden;
+    }
+
+    .bg-orb {
+      position: absolute;
+      width: 320px;
+      height: 320px;
+      border-radius: 999px;
+      filter: blur(90px);
+      opacity: 0.7;
+      pointer-events: none;
+      z-index: 0;
+    }
+    .orb-1 { background: var(--accent); top: -80px; left: -60px; }
+    .orb-2 { background: var(--accent2); bottom: -100px; right: -80px; }
+
+    .app {
+      position: relative;
+      z-index: 1;
+      max-width: 1040px;
+      margin: 0 auto;
+      padding: 20px 16px 32px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    header.app-header {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      margin-bottom: 8px;
+    }
+
+    .logo-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .logo-mark {
+      width: 32px;
+      height: 32px;
+      border-radius: 999px;
+      background: radial-gradient(circle, #ffffff 0, #e5e7eb 30%, #6366f1 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      color: #111827;
+      font-weight: 700;
+      box-shadow: 0 12px 30px rgba(15, 23, 42, 0.6);
+    }
+
+    .logo-text {
+      font-size: 24px;
+      font-weight: 700;
+      letter-spacing: 0.03em;
+    }
+
+    .tagline {
+      font-size: 14px;
+      color: var(--text-muted);
+    }
+
+    main.app-main {
+      display: grid;
+      grid-template-columns: minmax(0, 2fr);
+      gap: 16px;
+    }
+
+    @media (min-width: 900px) {
+      main.app-main {
+        grid-template-columns: 1.4fr 1.6fr;
+      }
+    }
+
+    .card-glass {
+      background: var(--glass-bg);
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--glass-border);
+      box-shadow: 0 18px 45px rgba(15, 23, 42, 0.85);
+      backdrop-filter: blur(18px);
+      padding: 18px 18px 16px;
+    }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .card-title {
+      font-size: 16px;
+      font-weight: 600;
+    }
+
+    .card-subtitle {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .pill {
+      font-size: 11px;
+      padding: 4px 8px;
+      border-radius: 999px;
+      border: 1px solid rgba(148, 163, 184, 0.5);
+      color: var(--text-muted);
+    }
+
+    .session-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+      gap: 12px;
+      align-items: stretch;
+    }
+
+    @media (max-width: 720px) {
+      .session-grid {
+        grid-template-columns: minmax(0, 1fr);
+      }
+    }
+
+    .session-left {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .btn-gradient {
+      border: none;
+      border-radius: 999px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      color: white;
+      font-weight: 600;
+      font-size: 14px;
+      padding: 10px 18px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      justify-content: center;
+      box-shadow: 0 12px 35px rgba(79, 70, 229, 0.7);
+      transition: transform 0.1s ease, box-shadow 0.1s ease;
+    }
+
+    .btn-gradient:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 16px 35px rgba(79, 70, 229, 0.85);
+    }
+
+    .btn-ghost {
+      border-radius: 999px;
+      border: 1px solid rgba(148, 163, 184, 0.7);
+      background: rgba(15, 23, 42, 0.8);
+      color: var(--text-main);
+      padding: 8px 14px;
+      font-size: 13px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .session-code-line {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    .session-code-value {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      font-size: 15px;
+      padding: 4px 8px;
+      border-radius: 999px;
+      background: rgba(15, 23, 42, 0.9);
+      border: 1px solid rgba(148, 163, 184, 0.5);
+      color: #e5e7eb;
+    }
+
+    .join-row {
+      display: flex;
+      gap: 6px;
+    }
+
+    .join-row input {
+      flex: 1;
+      min-width: 0;
+      border-radius: 999px;
+      border: 1px solid rgba(148, 163, 184, 0.7);
+      background: rgba(15, 23, 42, 0.85);
+      padding: 8px 12px;
+      color: var(--text-main);
+      font-size: 13px;
+      outline: none;
+    }
+
+    .join-row input::placeholder {
+      color: rgba(148, 163, 184, 0.8);
+    }
+
+    .qr-panel {
+      border-radius: 16px;
+      border: 1px dashed rgba(148, 163, 184, 0.7);
+      background: rgba(15, 23, 42, 0.6);
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    #qr-section {
+      width: 100%;
+      display: none; /* JS => block quand QR généré */
+    }
+
+    #qrcode {
+      background: white;
+      padding: 6px;
+      border-radius: 12px;
+    }
+
+    .devices-card {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .devices-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .devices-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 14px;
+      justify-content: center;
+    }
+
+    .device-bubble {
+      width: 110px;
+      padding: 10px 8px 12px;
+      border-radius: 18px;
+      background: rgba(15, 23, 42, 0.85);
+      border: 1px solid rgba(148, 163, 184, 0.65);
+      text-align: center;
+      font-size: 12px;
+      color: var(--text-muted);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      box-shadow: 0 12px 30px rgba(15, 23, 42, 0.85);
+    }
+
+    .device-bubble.self {
+      border-color: rgba(94, 234, 212, 0.7);
+      box-shadow: 0 0 0 1px var(--accent-soft), 0 22px 45px rgba(15, 23, 42, 0.9);
+    }
+
+    .device-icon {
+      width: 46px;
+      height: 46px;
+      border-radius: 999px;
+      background: radial-gradient(circle, rgba(148, 163, 184, 0.05), rgba(15, 23, 42, 1));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      box-shadow: 0 10px 25px rgba(15, 23, 42, 0.8);
+    }
+
+    .device-name {
+      font-size: 13px;
+      color: var(--text-main);
+      font-weight: 500;
+    }
+
+    .device-badge {
+      font-size: 10px;
+      padding: 2px 8px;
+      border-radius: 999px;
+      background: rgba(15, 23, 42, 0.9);
+      border: 1px solid rgba(148, 163, 184, 0.6);
+    }
+
+    .dropzone {
+      margin-top: 4px;
+      border-radius: 18px;
+      border: 1px dashed rgba(148, 163, 184, 0.75);
+      background: rgba(15, 23, 42, 0.6);
+      padding: 18px 16px;
+      text-align: center;
+      font-size: 13px;
+      color: var(--text-muted);
+      box-shadow: 0 0 0 1px rgba(15, 23, 42, 0.9);
+    }
+
+    .dropzone.drag-over {
+      border-color: #38bdf8;
+      box-shadow: 0 0 0 1px #38bdf8;
+      color: #bae6fd;
+    }
+
+    .send-file-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
+      margin-top: 10px;
+    }
+
+    .btn-file-main {
+      border-radius: 999px;
+      border: none;
+      background: linear-gradient(135deg, #22c55e, #22d3ee);
+      color: #0f172a;
+      font-weight: 600;
+      font-size: 13px;
+      padding: 8px 14px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      box-shadow: 0 16px 35px rgba(6, 95, 70, 0.9);
+    }
+
+    .btn-file-secondary {
+      border-radius: 999px;
+      border: 1px solid rgba(148, 163, 184, 0.7);
+      background: rgba(15, 23, 42, 0.85);
+      color: var(--text-main);
+      font-size: 12px;
+      padding: 6px 12px;
+      cursor: pointer;
+    }
+
+    .status-text {
+      font-size: 12px;
+      color: var(--text-muted);
+      text-align: left;
+      margin-top: 6px;
+      min-height: 16px;
+    }
+
+    .received-card {
+      margin-top: 6px;
+      padding: 10px;
+      border-radius: 14px;
+      background: rgba(15, 23, 42, 0.8);
+      border: 1px solid rgba(148, 163, 184, 0.6);
+      font-size: 12px;
+      min-height: 40px;
+    }
+
+    .received-card a {
+      color: #38bdf8;
+      font-size: 12px;
+      text-decoration: none;
+    }
+
+    #chat p {
+      margin: 0 0 4px;
+    }
+  </style>
+</head>
+<body>
+  <div class="bg-orb orb-1"></div>
+  <div class="bg-orb orb-2"></div>
+
+  <div class="app">
+    <header class="app-header">
+      <div class="logo-row">
+        <div class="logo-mark">A</div>
+        <div class="logo-text">AirLink</div>
+      </div>
+      <div class="tagline">Partage instantané et sécurisé entre tous tes appareils.</div>
+    </header>
+
+    <main class="app-main">
+      <!-- Colonne gauche : session + messages -->
+      <section class="card-glass">
+        <div class="card-header">
+          <div>
+            <div class="card-title">Session</div>
+            <div class="card-subtitle">Crée un code ou rejoins une session existante.</div>
+          </div>
+          <span class="pill">Temps réel</span>
+        </div>
+
+        <div class="session-grid">
+          <div class="session-left">
+            <button id="create-btn" class="btn-gradient">
+              🚀 Créer une session
+            </button>
+            <p id="create-result" class="status-text"></p>
+
+            <div class="session-code-line">
+              <span>Code actuel :</span>
+              <span class="session-code-value" id="session-code-display">----</span>
+            </div>
+
+            <div class="join-row">
+              <input id="join-code" placeholder="Entrer un code de session">
+              <button id="join-btn" class="btn-ghost">Rejoindre</button>
+            </div>
+            <p id="join-result" class="status-text"></p>
+
+            <div style="margin-top:8px;">
+              <div style="font-size:12px; color:var(--text-muted); margin-bottom:4px;">
+                Messages de la session :
+              </div>
+              <div id="chat" style="border-radius:14px; border:1px solid rgba(148,163,184,0.5); padding:8px; min-height:80px; max-height:140px; overflow-y:auto; font-size:12px;"></div>
+              <div style="display:flex; gap:6px; margin-top:6px;">
+                <input id="msg-input" placeholder="Écrire un message..." style="flex:1; min-width:0; border-radius:999px; border:1px solid rgba(148,163,184,0.7); background:rgba(15,23,42,0.85); padding:6px 10px; color:#e5e7eb; font-size:12px; outline:none;">
+                <button id="send-msg-btn" class="btn-ghost">Envoyer</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="session-right">
+            <div id="qr-section" class="qr-panel">
+              <span>Scanner avec l'autre appareil</span>
+              <div id="qrcode"></div>
+              <span style="font-size:10px;">Ouvre AirLink directement dans la bonne session.</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Colonne droite : style Snapdrop + fichiers -->
+      <section class="card-glass devices-card">
+        <div class="devices-header">
+          <div>
+            <div class="card-title">Appareils connectés</div>
+            <div class="card-subtitle">Sélectionne un appareil et envoie un fichier.</div>
+          </div>
+          <span class="pill">via AirLink</span>
+        </div>
+
+        <div class="devices-grid">
+          <div class="device-bubble self">
+            <div class="device-icon">🖥️</div>
+            <div class="device-name">Cet appareil</div>
+            <div class="device-badge">En ligne</div>
+          </div>
+
+          <div class="device-bubble">
+            <div class="device-icon">📱</div>
+            <div class="device-name">Autre appareil</div>
+            <div class="device-badge">En attente</div>
+          </div>
+        </div>
+
+        <div class="dropzone" id="dropzone">
+          Glisse-dépose ton fichier ici<br>ou utilise les boutons ci-dessous.
+        </div>
+
+        <div class="send-file-row">
+          <button class="btn-file-main" id="choose-file-fake">
+            📂 Choisir un fichier à envoyer
+          </button>
+          <button class="btn-file-secondary" id="send-file-btn">
+            ➜ Envoyer vers la session
+          </button>
+        </div>
+
+        <!-- Input réel invisible -->
+        <input id="file-input" type="file" style="display:none;">
+
+        <p id="file-status" class="status-text"></p>
+
+        <div class="card-subtitle" style="margin-top:8px;">Fichiers reçus :</div>
+        <div id="received-files" class="received-card" data-empty="true">
+          <span style="color:var(--text-muted);">Aucun fichier reçu pour l’instant.</span>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Script client Socket.io -->
+  <script src="/socket.io/socket.io.js"></script>
+  <!-- Librairie QRCode -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+  <!-- Script principal -->
+  <script>
+    const createBtn = document.getElementById('create-btn');
+    const createResult = document.getElementById('create-result');
+    const sessionCodeDisplay = document.getElementById('session-code-display');
+    const joinInput = document.getElementById('join-code');
+    const joinBtn = document.getElementById('join-btn');
+    const joinResult = document.getElementById('join-result');
+    const chatDiv = document.getElementById('chat');
+    const msgInput = document.getElementById('msg-input');
+    const sendMsgBtn = document.getElementById('send-msg-btn');
+
+    const fileInput = document.getElementById('file-input');
+    const fakeChooseFileBtn = document.getElementById('choose-file-fake');
+    const sendFileBtn = document.getElementById('send-file-btn');
+    const fileStatus = document.getElementById('file-status');
+    const receivedFilesDiv = document.getElementById('received-files');
+    const dropzone = document.getElementById('dropzone');
+
+    const qrSection = document.getElementById('qr-section');
+    const qrCodeDiv = document.getElementById('qrcode');
+
+    // Connexion Socket.io
+    const socket = io();
+
+    let currentSessionCode = null;
+    let selectedFile = null;
+    let qrCodeInstance = null;
+
+    // URL de base : TON IP LOCALE (adaptée pour le QR)
+    let BASE_URL = window.location.origin;
+
+    // Fichiers en cours de réception (chunks)
+    const incomingFiles = {}; // fileId -> { fileName, fileType, fileSize, chunks: [] }
+
+    function addChatLine(text) {
+      const p = document.createElement('p');
+      p.textContent = text;
+      chatDiv.appendChild(p);
+      chatDiv.scrollTop = chatDiv.scrollHeight;
+    }
+
+    function setSessionCodeDisplay(code) {
+      sessionCodeDisplay.textContent = code || '----';
+    }
+
+    // Lire paramètre URL (ex: ?code=1234)
+    function getUrlParam(name) {
+      const params = new URLSearchParams(window.location.search);
+      return params.get(name);
+    }
+
+    // ---- Gestion fichier : sélection ----
+    fileInput.addEventListener('change', () => {
+      if (fileInput.files && fileInput.files.length > 0) {
+        selectedFile = fileInput.files[0];
+        fileStatus.textContent = `Fichier sélectionné : ${selectedFile.name} (${selectedFile.size} octets)`;
+      } else {
+        selectedFile = null;
+        fileStatus.textContent = 'Aucun fichier sélectionné.';
+      }
+    });
+
+    // Bouton "Choisir un fichier"
+    fakeChooseFileBtn.addEventListener('click', () => {
+      fileInput.click();
+    });
+
+    // Drag & drop dans la dropzone
+    ;['dragenter', 'dragover'].forEach(evt => {
+      dropzone.addEventListener(evt, (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        dropzone.classList.add('drag-over');
+      });
+    });
+
+    ;['dragleave', 'drop'].forEach(evt => {
+      dropzone.addEventListener(evt, (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (evt === 'dragleave') {
+          dropzone.classList.remove('drag-over');
+        }
+      });
+    });
+
+    dropzone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      dropzone.classList.remove('drag-over');
+      const files = e.dataTransfer.files;
+      if (files && files.length > 0) {
+        selectedFile = files[0];
+        fileStatus.textContent = `Fichier sélectionné (drop) : ${selectedFile.name} (${selectedFile.size} octets)`;
+      }
+    });
+
+    // ---- Générer QR code ----
+    function generateQrForSession(code) {
+      const url = `${BASE_URL}?code=${code}`;
+
+      if (qrCodeInstance) {
+        qrCodeDiv.innerHTML = '';
+      }
+
+      qrCodeInstance = new QRCode(qrCodeDiv, {
+        text: url,
+        width: 200,
+        height: 200
+      });
+
+      qrSection.style.display = 'block';
+    }
+
+    // ---- Créer session ----
+    createBtn.addEventListener('click', async () => {
+      const res = await fetch('/api/create-session', { method: 'POST' });
+      const data = await res.json();
+
+      currentSessionCode = data.code;
+      createResult.textContent = "Session créée : " + data.code;
+      setSessionCodeDisplay(currentSessionCode);
+
+      socket.emit('join-session', currentSessionCode);
+      addChatLine("[SYSTEM] Session " + currentSessionCode + " créée et rejointe.");
+
+      generateQrForSession(currentSessionCode);
+    });
+
+    // ---- Rejoindre session ----
+    joinBtn.addEventListener('click', async () => {
+      const code = joinInput.value.trim();
+
+      const res = await fetch('/api/join-session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code })
+      });
+
+      if (!res.ok) {
+        joinResult.textContent = "❌ Session introuvable";
+        return;
+      }
+
+      const data = await res.json();
+      currentSessionCode = data.code;
+      joinResult.textContent = "✔ Rejoint la session : " + data.code;
+      setSessionCodeDisplay(currentSessionCode);
+
+      socket.emit('join-session', currentSessionCode);
+      addChatLine("[SYSTEM] Rejoint la session " + currentSessionCode + ".");
+    });
+
+    // ---- Envoyer message ----
+    sendMsgBtn.addEventListener('click', () => {
+      const text = msgInput.value.trim();
+      if (!text || !currentSessionCode) return;
+
+      socket.emit('send-message', { code: currentSessionCode, text });
+      msgInput.value = '';
+    });
+
+    // ---- Envoyer fichier en CHUNKS ----
+    sendFileBtn.addEventListener('click', () => {
+      if (!currentSessionCode) {
+        fileStatus.textContent = "❌ Tu dois d’abord créer ou rejoindre une session.";
+        return;
+      }
+      if (!selectedFile) {
+        fileStatus.textContent = "❌ Aucun fichier sélectionné.";
+        return;
+      }
+
+      // Limite raisonnable pour éviter les abus
+      const MAX_SIZE = 200 * 1024 * 1024; // 200 Mo
+      if (selectedFile.size > MAX_SIZE) {
+        fileStatus.textContent = "❌ Fichier trop gros pour ce mode (max 200 Mo).";
+        return;
+      }
+
+      const CHUNK_SIZE = 256 * 1024; // 256 Ko
+      const fileId = Date.now() + '-' + Math.random().toString(36).slice(2);
+
+      let offset = 0;
+
+      // Métadonnées d'abord
+      socket.emit('file-meta', {
+        code: currentSessionCode,
+        fileId,
+        fileName: selectedFile.name,
+        fileType: selectedFile.type,
+        fileSize: selectedFile.size
+      });
+
+      sendFileBtn.disabled = true;
+      fileStatus.textContent = "Préparation du fichier...";
+
+      function sendNextChunk() {
+        const slice = selectedFile.slice(offset, offset + CHUNK_SIZE);
+        const reader = new FileReader();
+
+        reader.onload = (e) => {
+          const chunkBuffer = e.target.result; // ArrayBuffer
+
+          socket.emit('file-chunk', {
+            code: currentSessionCode,
+            fileId,
+            chunk: chunkBuffer
+          });
+
+          offset += CHUNK_SIZE;
+          const percent = Math.min(100, Math.round((offset / selectedFile.size) * 100));
+          fileStatus.textContent = `Envoi du fichier... ${percent}%`;
+
+          if (offset < selectedFile.size) {
+            sendNextChunk();
+          } else {
+            socket.emit('file-complete', {
+              code: currentSessionCode,
+              fileId
+            });
+
+            fileStatus.textContent = `✔ Fichier envoyé : ${selectedFile.name}`;
+            sendFileBtn.disabled = false;
+          }
+        };
+
+        reader.onerror = () => {
+          fileStatus.textContent = "❌ Erreur lecture fichier.";
+          sendFileBtn.disabled = false;
+        };
+
+        reader.readAsArrayBuffer(slice);
+      }
+
+      sendNextChunk();
+    });
+
+    // ---- Messages système ----
+    socket.on('system-message', (text) => addChatLine("[SYSTEM] " + text));
+
+    // ---- Messages texte ----
+    socket.on('message', (payload) => {
+      const time = new Date(payload.timestamp).toLocaleTimeString();
+      addChatLine(`[${time}] ${payload.from}: ${payload.text}`);
+    });
+
+    // ---- Réception métadonnées fichier ----
+    socket.on('file-meta', (payload) => {
+      const { fileId, fileName, fileType, fileSize } = payload;
+
+      incomingFiles[fileId] = {
+        fileName,
+        fileType,
+        fileSize,
+        chunks: []
+      };
+
+      // On laisse juste un petit log visuel si besoin
+      console.log('📥 Réception fichier :', fileName, fileSize);
+    });
+
+    // ---- Réception chunk ----
+    socket.on('file-chunk', (payload) => {
+      const { fileId, chunk } = payload;
+      const fileEntry = incomingFiles[fileId];
+      if (!fileEntry) return;
+      fileEntry.chunks.push(chunk);
+    });
+
+    // ---- Réception fin de fichier ----
+    socket.on('file-complete', (payload) => {
+      const { fileId, timestamp } = payload;
+      const fileEntry = incomingFiles[fileId];
+      if (!fileEntry) return;
+
+      const { fileName, fileType, fileSize, chunks } = fileEntry;
+
+      const blob = new Blob(chunks, { type: fileType || 'application/octet-stream' });
+      const url = URL.createObjectURL(blob);
+
+      const time = new Date(timestamp).toLocaleTimeString();
+
+      if (receivedFilesDiv.dataset.empty === 'true') {
+        receivedFilesDiv.innerHTML = '';
+        receivedFilesDiv.dataset.empty = 'false';
+      }
+
+      const container = document.createElement('div');
+      container.style.marginBottom = '8px';
+
+      const info = document.createElement('p');
+      info.textContent = `[${time}] Fichier reçu : ${fileName} (${fileSize} octets)`;
+      container.appendChild(info);
+
+      const link = document.createElement('a');
+      link.textContent = 'Télécharger';
+      link.download = fileName;
+      link.href = url;
+      container.appendChild(link);
+
+      if (fileType && fileType.startsWith('image/')) {
+        const img = document.createElement('img');
+        img.src = url;
+        img.style.maxWidth = '200px';
+        img.style.display = 'block';
+        img.style.marginTop = '4px';
+        container.appendChild(img);
+      }
+
+      receivedFilesDiv.appendChild(container);
+
+      delete incomingFiles[fileId];
+    });
+
+    // ---- Auto-join via ?code= ----
+    window.addEventListener('load', async () => {
+      const urlCode = getUrlParam('code');
+      if (!urlCode) return;
+
+      joinInput.value = urlCode;
+
+      const res = await fetch('/api/join-session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: urlCode })
+      });
+
+      if (!res.ok) {
+        joinResult.textContent = "❌ Session introuvable (via URL)";
+        return;
+      }
+
+      const data = await res.json();
+      currentSessionCode = data.code;
+      joinResult.textContent = "✔ Rejoint la session (via URL) : " + data.code;
+      setSessionCodeDisplay(currentSessionCode);
+
+      socket.emit('join-session', currentSessionCode);
+      addChatLine("[SYSTEM] Rejoint automatiquement la session " + currentSessionCode + " via l’URL.");
+    });
+  </script>
+</body>
+</html>
