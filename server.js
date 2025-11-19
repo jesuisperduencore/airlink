@@ -1,132 +1,211 @@
 // server.js
 
+require('dotenv').config(); // pour .env en local (ne gêne pas Railway)
+
 const express = require('express');
 const path = require('path');
 const http = require('http');
 const { Server } = require('socket.io');
+const nodemailer = require('nodemailer');
 
 const app = express();
-// ❌ Avant : const PORT = 3000;
-// ✅ Après : PORT dynamique pour Railway + local
+// PORT dynamique pour Railway ou local
 const PORT = process.env.PORT || 3000;
 
-// Dossier pour les fichiers statiques (HTML, CSS, JS)
+// 🔒 Limites version gratuite
+const FREE_MAX_FILE_SIZE = 20 * 1024 * 1024; // 20 Mo
+const FREE_MAX_FILES_PER_SESSION = 5;        // 5 fichiers par session
+
+// ✉️ Config e-mail
+const FROM_EMAIL = process.env.FROM_EMAIL || 'no-reply@airlink.local';
+
+// ✅ Transporter : vrai SMTP si config, sinon mode DEV (jsonTransport)
+let transporter;
+if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
+  console.log('✉️ SMTP réel activé :', process.env.SMTP_HOST);
+  transporter = nodemailer.createTransport({
+    host: process.env.SMTP_HOST,                           // ex: in-v3.mailjet.com
+    port: process.env.SMTP_PORT ? Number(process.env.SMTP_PORT) : 587,
+    secure: false,                                         // 587 = STARTTLS
+    auth: {
+      user: process.env.SMTP_USER,
+      pass: process.env.SMTP_PASS
+    }
+  });
+} else {
+  console.log('✉️ SMTP non configuré, mode DEV (emails logués, pas envoyés)');
+  transporter = nodemailer.createTransport({
+    jsonTransport: true // ne se connecte à rien, retourne juste l’email en JSON
+  });
+}
+
+// Dossier public
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Petite route de test API
+// Route test
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', app: 'AirLink' });
 });
 
-// ---- Gestion des sessions ----
-
-// Stockage simple en mémoire (OK pour un MVP)
+// Sessions en mémoire
 const sessions = {};
 
-// Fonction pour générer un code (4 chiffres)
 function generateCode() {
   return Math.floor(1000 + Math.random() * 9000).toString();
 }
 
-// Route pour créer une session
-app.post('/api/create-session', (req, res) => {
+// ---- créer une session ----
+app.post('/api/create-session', express.json(), (req, res) => {
+  const { password } = req.body || {};
   const code = generateCode();
-  sessions[code] = { createdAt: Date.now() };
+
+  sessions[code] = {
+    createdAt: Date.now(),
+    password: password || null,
+    fileCount: 0
+  };
+
   res.json({ code });
 });
 
-// Route pour rejoindre une session
+// ---- rejoindre une session ----
 app.post('/api/join-session', express.json(), (req, res) => {
-  const { code } = req.body;
+  const { code, password } = req.body || {};
+  const session = sessions[code];
 
-  if (!sessions[code]) {
-    return res.status(404).json({ error: "Session introuvable" });
+  if (!session) return res.status(404).json({ error: "Session introuvable" });
+
+  if (session.password && session.password !== password) {
+    return res.status(401).json({ error: "Mot de passe incorrect" });
   }
 
   res.json({ ok: true, code });
 });
 
-// ---- Création du serveur HTTP & Socket.io ----
+// ---- envoyer une invitation par e-mail ----
+app.post('/api/send-invite', express.json(), async (req, res) => {
+  const { sessionCode, toEmail } = req.body || {};
+
+  if (!sessionCode || !toEmail) {
+    return res.status(400).json({ error: "Données manquantes." });
+  }
+
+  if (!sessions[sessionCode]) {
+    return res.status(404).json({ error: "Session introuvable." });
+  }
+
+  const baseUrl =
+    process.env.PUBLIC_BASE_URL ||
+    req.headers.origin ||
+    `http://localhost:${PORT}`;
+
+  const link = `${baseUrl}?code=${sessionCode}`;
+
+  try {
+    const info = await transporter.sendMail({
+      from: FROM_EMAIL,
+      to: toEmail,
+      subject: 'Lien AirLink pour récupérer des fichiers',
+      text:
+        `Quelqu'un t'a partagé des fichiers via AirLink.\n\n` +
+        `Clique ici pour ouvrir la session : ${link}\n\n` +
+        `Si tu ne t'attendais pas à cet e-mail, ignore-le.`,
+      html: `
+        <p>Quelqu'un t'a partagé des fichiers via <strong>AirLink</strong>.</p>
+        <p><a href="${link}" target="_blank" rel="noopener">Ouvrir la session AirLink</a></p>
+        <p style="font-size:12px;color:#64748b;">
+          Si tu ne t'attendais pas à cet e-mail, tu peux l'ignorer.
+        </p>
+      `
+    });
+
+    console.log('📧 Résultat envoi (dev ou prod) :', info);
+    res.json({ ok: true });
+  } catch (err) {
+    console.error("Erreur envoi e-mail d'invitation :", err);
+    res.status(500).json({ error: "Erreur lors de l'envoi de l'e-mail." });
+  }
+});
+
+// ---- WebSocket ----
 const server = http.createServer(app);
-const io = new Server(server); // pas besoin de CORS car front et back sont sur le même domaine
+const io = new Server(server);
 
 io.on('connection', (socket) => {
-  console.log('🔌 Nouveau client connecté :', socket.id);
+  console.log("🔌 Client connecté :", socket.id);
 
-  // Le client demande à rejoindre une session
   socket.on('join-session', (code) => {
     if (!sessions[code]) {
-      console.log('❌ Tentative de rejoindre une session inconnue :', code);
-      socket.emit('system-message', 'Session introuvable.');
+      socket.emit("system-message", "Session introuvable.");
       return;
     }
 
     socket.join(code);
     socket.data.sessionCode = code;
 
-    console.log(`✅ Socket ${socket.id} a rejoint la session ${code}`);
-    io.to(code).emit('system-message', `Un appareil a rejoint la session ${code}.`);
+    io.to(code).emit("system-message", `Un appareil a rejoint la session ${code}.`);
   });
 
-  // Réception d’un message texte depuis un client
   socket.on('send-message', ({ code, text }) => {
     if (!code || !text) return;
 
-    const payload = {
+    io.to(code).emit("message", {
       text,
       from: socket.id,
       timestamp: Date.now()
-    };
-
-    io.to(code).emit('message', payload);
+    });
   });
 
-  // ---- Nouveau système de fichiers en CHUNKS ----
+  // ---- Gestion des fichiers ----
 
-  // Métadonnées du fichier (nom, taille, type, id...)
   socket.on('file-meta', (payload) => {
-    const { code } = payload;
-    if (!code) return;
+    const { code, fileSize, fileName } = payload;
+    const session = sessions[code];
 
-    const enriched = {
+    if (!session) {
+      socket.emit("file-error", "Session introuvable.");
+      return;
+    }
+
+    // limite taille
+    if (fileSize > FREE_MAX_FILE_SIZE) {
+      socket.emit("file-error", "Limite gratuite : max 20 Mo.");
+      return;
+    }
+
+    // limite nombre de fichiers
+    if (session.fileCount >= FREE_MAX_FILES_PER_SESSION) {
+      socket.emit("file-error", "Limite gratuite : max 5 fichiers par session.");
+      return;
+    }
+
+    session.fileCount++;
+
+    io.to(code).emit("file-meta", {
       ...payload,
       from: socket.id,
       timestamp: Date.now()
-    };
-
-    // On renvoie à tous les clients de la session
-    io.to(code).emit('file-meta', enriched);
+    });
   });
 
-  // Un chunk de fichier (ArrayBuffer)
   socket.on('file-chunk', (payload) => {
-    const { code } = payload;
-    if (!code) return;
-
-    // On relaye tel quel aux autres (et à l’émetteur)
-    io.to(code).emit('file-chunk', payload);
+    io.to(payload.code).emit("file-chunk", payload);
   });
 
-  // Indique que tous les chunks ont été envoyés
   socket.on('file-complete', (payload) => {
-    const { code } = payload;
-    if (!code) return;
-
-    const enriched = {
+    io.to(payload.code).emit("file-complete", {
       ...payload,
       from: socket.id,
       timestamp: Date.now()
-    };
-
-    io.to(code).emit('file-complete', enriched);
+    });
   });
 
   socket.on('disconnect', () => {
-    console.log('🔌 Client déconnecté :', socket.id);
+    console.log("🔌 Client déconnecté :", socket.id);
   });
 });
 
-// ✅ PORT dynamique (Railway ou local)
+// ---- Lancement serveur ----
 server.listen(PORT, () => {
-  console.log(`✅ AirLink backend + WebSocket lancé sur le port ${PORT}`);
+  console.log(`✅ AirLink lancé sur le port ${PORT}`);
 });

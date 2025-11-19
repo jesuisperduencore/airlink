@@ -60,9 +60,17 @@
 
     header.app-header {
       display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+      margin-bottom: 8px;
+      flex-wrap: wrap;
+    }
+
+    .logo-block {
+      display: flex;
       flex-direction: column;
       gap: 4px;
-      margin-bottom: 8px;
     }
 
     .logo-row {
@@ -94,6 +102,73 @@
     .tagline {
       font-size: 14px;
       color: var(--text-muted);
+    }
+
+    .user-box {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: rgba(15, 23, 42, 0.75);
+      border: 1px solid rgba(148, 163, 184, 0.5);
+      box-shadow: 0 10px 30px rgba(15, 23, 42, 0.8);
+    }
+
+    .user-info {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      font-size: 11px;
+    }
+
+    .user-name {
+      font-size: 12px;
+      font-weight: 500;
+    }
+
+    .user-email {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .user-avatar {
+      width: 26px;
+      height: 26px;
+      border-radius: 999px;
+      background: rgba(15, 23, 42, 1);
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .user-avatar img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .user-pill {
+      font-size: 10px;
+      padding: 2px 6px;
+      border-radius: 999px;
+      background: rgba(22, 163, 74, 0.1);
+      border: 1px solid rgba(34, 197, 94, 0.6);
+      color: #bbf7d0;
+      align-self: flex-start;
+    }
+
+    .user-logout-btn {
+      border-radius: 999px;
+      border: 1px solid rgba(148, 163, 184, 0.7);
+      background: transparent;
+      color: var(--text-muted);
+      padding: 4px 8px;
+      font-size: 11px;
+      cursor: pointer;
     }
 
     main.app-main {
@@ -253,7 +328,7 @@
 
     #qr-section {
       width: 100%;
-      display: none; /* JS => block quand QR généré */
+      display: none;
     }
 
     #qrcode {
@@ -407,6 +482,11 @@
     #chat p {
       margin: 0 0 4px;
     }
+
+    .google-btn-placeholder {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
   </style>
 </head>
 <body>
@@ -415,11 +495,27 @@
 
   <div class="app">
     <header class="app-header">
-      <div class="logo-row">
-        <div class="logo-mark">A</div>
-        <div class="logo-text">AirLink</div>
+      <div class="logo-block">
+        <div class="logo-row">
+          <div class="logo-mark">A</div>
+          <div class="logo-text">AirLink</div>
+        </div>
+        <div class="tagline">Partage instantané et sécurisé entre tous tes appareils.</div>
       </div>
-      <div class="tagline">Partage instantané et sécurisé entre tous tes appareils.</div>
+
+      <!-- Bloc utilisateur / connexion Google -->
+      <div class="user-box" id="user-box">
+        <div class="user-avatar" id="user-avatar">
+          <span id="user-avatar-initial">?</span>
+        </div>
+        <div class="user-info">
+          <span class="user-name" id="user-name">Non connecté</span>
+          <span class="user-email" id="user-email">Connecte-toi avec Google pour sauvegarder ton activité.</span>
+          <span class="user-pill" id="user-plan" style="display:none;">AirLink+ prochainement</span>
+        </div>
+        <button class="user-logout-btn" id="user-logout-btn" style="display:none;">Se déconnecter</button>
+        <div id="google-btn-container" class="google-btn-placeholder"></div>
+      </div>
     </header>
 
     <main class="app-main">
@@ -428,9 +524,9 @@
         <div class="card-header">
           <div>
             <div class="card-title">Session</div>
-            <div class="card-subtitle">Crée un code ou rejoins une session existante.</div>
+            <div class="card-subtitle">Crée un code, ajoute un mot de passe si tu veux, ou rejoins une session existante.</div>
           </div>
-          <span class="pill">Temps réel</span>
+          <span class="pill">Gratuit • 20 Mo / fichier • 5 fichiers / session</span>
         </div>
 
         <div class="session-grid">
@@ -439,6 +535,13 @@
               🚀 Créer une session
             </button>
             <p id="create-result" class="status-text"></p>
+
+            <!-- Mot de passe de session (optionnel) -->
+            <input
+              id="create-password"
+              placeholder="Mot de passe de session (optionnel)"
+              style="border-radius:999px; border:1px solid rgba(148,163,184,0.7); background:rgba(15,23,42,0.85); padding:8px 12px; color:#e5e7eb; font-size:13px; outline:none; width:100%;"
+            >
 
             <div class="session-code-line">
               <span>Code actuel :</span>
@@ -449,7 +552,33 @@
               <input id="join-code" placeholder="Entrer un code de session">
               <button id="join-btn" class="btn-ghost">Rejoindre</button>
             </div>
+
+            <!-- Mot de passe pour rejoindre (si défini) -->
+            <input
+              id="join-password"
+              placeholder="Mot de passe de la session (si défini)"
+              style="border-radius:999px; border:1px solid rgba(148,163,184,0.7); background:rgba(15,23,42,0.85); padding:8px 12px; color:#e5e7eb; font-size:13px; outline:none; width:100%; margin-top:4px;"
+            >
+
             <p id="join-result" class="status-text"></p>
+
+            <!-- 🔵 NOUVEAU : invitation par e-mail -->
+            <div style="margin-top:4px;">
+              <input
+                id="invite-email"
+                placeholder="Envoyer le lien de cette session par e-mail"
+                style="border-radius:999px; border:1px solid rgba(148,163,184,0.7); background:rgba(15,23,42,0.85); padding:8px 12px; color:#e5e7eb; font-size:13px; outline:none; width:100%;"
+              >
+              <button
+                id="send-invite-btn"
+                class="btn-ghost"
+                style="margin-top:6px; width:100%; justify-content:center; font-size:12px;"
+              >
+                ✉️ Envoyer le lien par e-mail
+              </button>
+              <p id="invite-status" class="status-text"></p>
+            </div>
+            <!-- fin bloc mail -->
 
             <div style="margin-top:8px;">
               <div style="font-size:12px; color:var(--text-muted); margin-bottom:4px;">
@@ -480,7 +609,7 @@
             <div class="card-title">Appareils connectés</div>
             <div class="card-subtitle">Sélectionne un appareil et envoie un fichier.</div>
           </div>
-          <span class="pill">via AirLink</span>
+        <span class="pill">via AirLink</span>
         </div>
 
         <div class="devices-grid">
@@ -527,15 +656,29 @@
   <script src="/socket.io/socket.io.js"></script>
   <!-- Librairie QRCode -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <!-- Google Identity Services -->
+  <script src="https://accounts.google.com/gsi/client"></script>
 
   <!-- Script principal -->
   <script>
+    // --------------- CONFIG GOOGLE ---------------
+    const GOOGLE_CLIENT_ID = "717164808874-fplqldo9accshcplgfd6ei4qrhgaoure.apps.googleusercontent.com"; // 🔴 Remplace par ton vrai Client ID si besoin
+
     const createBtn = document.getElementById('create-btn');
     const createResult = document.getElementById('create-result');
+    const createPasswordInput = document.getElementById('create-password');
     const sessionCodeDisplay = document.getElementById('session-code-display');
+
     const joinInput = document.getElementById('join-code');
+    const joinPasswordInput = document.getElementById('join-password');
     const joinBtn = document.getElementById('join-btn');
     const joinResult = document.getElementById('join-result');
+
+    // 🔵 NOUVEAU : éléments pour l’invitation par e-mail
+    const inviteEmailInput = document.getElementById('invite-email');
+    const sendInviteBtn = document.getElementById('send-invite-btn');
+    const inviteStatus = document.getElementById('invite-status');
+
     const chatDiv = document.getElementById('chat');
     const msgInput = document.getElementById('msg-input');
     const sendMsgBtn = document.getElementById('send-msg-btn');
@@ -550,14 +693,24 @@
     const qrSection = document.getElementById('qr-section');
     const qrCodeDiv = document.getElementById('qrcode');
 
+    const userBox = document.getElementById('user-box');
+    const userAvatar = document.getElementById('user-avatar');
+    const userAvatarInitial = document.getElementById('user-avatar-initial');
+    const userNameSpan = document.getElementById('user-name');
+    const userEmailSpan = document.getElementById('user-email');
+    const userPlanSpan = document.getElementById('user-plan');
+    const userLogoutBtn = document.getElementById('user-logout-btn');
+    const googleBtnContainer = document.getElementById('google-btn-container');
+
     // Connexion Socket.io
     const socket = io();
 
     let currentSessionCode = null;
     let selectedFile = null;
     let qrCodeInstance = null;
+    let currentUser = null; // { name, email, picture, sub }
 
-    // URL de base : TON IP LOCALE (adaptée pour le QR)
+    // URL de base dynamique (local ou Railway)
     let BASE_URL = window.location.origin;
 
     // Fichiers en cours de réception (chunks)
@@ -574,13 +727,93 @@
       sessionCodeDisplay.textContent = code || '----';
     }
 
-    // Lire paramètre URL (ex: ?code=1234)
     function getUrlParam(name) {
       const params = new URLSearchParams(window.location.search);
       return params.get(name);
     }
 
-    // ---- Gestion fichier : sélection ----
+    // ----------- GOOGLE LOGIN (front only pour l'instant) -----------
+
+    function parseJwt (token) {
+      const base64Url = token.split('.')[1];
+      const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+      const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+          return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+      }).join(''));
+      return JSON.parse(jsonPayload);
+    }
+
+    function handleGoogleCredentialResponse(response) {
+      try {
+        const data = parseJwt(response.credential);
+        currentUser = {
+          name: data.name,
+          email: data.email,
+          picture: data.picture,
+          sub: data.sub
+        };
+        updateUserUi();
+      } catch (err) {
+        console.error("Erreur lors du décodage du token Google :", err);
+      }
+    }
+
+    function renderGoogleButton() {
+      googleBtnContainer.innerHTML = '';
+      if (!window.google || !GOOGLE_CLIENT_ID || GOOGLE_CLIENT_ID === "YOUR_GOOGLE_CLIENT_ID") {
+        googleBtnContainer.textContent = "⚠️ Configure ton Client ID Google pour activer la connexion.";
+        return;
+      }
+
+      google.accounts.id.initialize({
+        client_id: GOOGLE_CLIENT_ID,
+        callback: handleGoogleCredentialResponse
+      });
+
+      google.accounts.id.renderButton(
+        googleBtnContainer,
+        {
+          theme: "outline",
+          size: "small",
+          shape: "pill",
+          text: "continue_with",
+          logo_alignment: "left"
+        }
+      );
+    }
+
+    function updateUserUi() {
+      if (currentUser) {
+        // Avatar
+        if (currentUser.picture) {
+          userAvatar.innerHTML = '<img src="' + currentUser.picture + '" alt="avatar">';
+        } else {
+          const initial = currentUser.name ? currentUser.name.charAt(0).toUpperCase() : '?';
+          userAvatar.innerHTML = '<span>' + initial + '</span>';
+        }
+
+        userNameSpan.textContent = currentUser.name || "Utilisateur connecté";
+        userEmailSpan.textContent = currentUser.email || "";
+        userLogoutBtn.style.display = 'inline-flex';
+        userPlanSpan.style.display = 'inline-flex';
+        googleBtnContainer.innerHTML = ''; // on masque le bouton Google
+      } else {
+        userAvatar.innerHTML = '<span id="user-avatar-initial">?</span>';
+        userNameSpan.textContent = "Non connecté";
+        userEmailSpan.textContent = "Connecte-toi avec Google pour sauvegarder ton activité plus tard.";
+        userLogoutBtn.style.display = 'none';
+        userPlanSpan.style.display = 'none';
+        renderGoogleButton();
+      }
+    }
+
+    userLogoutBtn.addEventListener('click', () => {
+      currentUser = null;
+      updateUserUi();
+    });
+
+    // ----------- GESTION FICHIERS -----------
+
     fileInput.addEventListener('change', () => {
       if (fileInput.files && fileInput.files.length > 0) {
         selectedFile = fileInput.files[0];
@@ -591,12 +824,10 @@
       }
     });
 
-    // Bouton "Choisir un fichier"
     fakeChooseFileBtn.addEventListener('click', () => {
       fileInput.click();
     });
 
-    // Drag & drop dans la dropzone
     ;['dragenter', 'dragover'].forEach(evt => {
       dropzone.addEventListener(evt, (e) => {
         e.preventDefault();
@@ -626,7 +857,6 @@
       }
     });
 
-    // ---- Générer QR code ----
     function generateQrForSession(code) {
       const url = `${BASE_URL}?code=${code}`;
 
@@ -645,11 +875,20 @@
 
     // ---- Créer session ----
     createBtn.addEventListener('click', async () => {
-      const res = await fetch('/api/create-session', { method: 'POST' });
+      const password = createPasswordInput.value.trim();
+
+      const res = await fetch('/api/create-session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: password || null })
+      });
+
       const data = await res.json();
 
       currentSessionCode = data.code;
-      createResult.textContent = "Session créée : " + data.code;
+      createResult.textContent = password
+        ? `Session créée : ${data.code} (protégée par mot de passe)`
+        : `Session créée : ${data.code}`;
       setSessionCodeDisplay(currentSessionCode);
 
       socket.emit('join-session', currentSessionCode);
@@ -661,25 +900,79 @@
     // ---- Rejoindre session ----
     joinBtn.addEventListener('click', async () => {
       const code = joinInput.value.trim();
+      const password = joinPasswordInput.value.trim();
+
+      if (!code) {
+        joinResult.textContent = "❌ Merci d’entrer un code de session.";
+        return;
+      }
 
       const res = await fetch('/api/join-session', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code })
+        body: JSON.stringify({ code, password: password || null })
       });
 
       if (!res.ok) {
-        joinResult.textContent = "❌ Session introuvable";
+        if (res.status === 404) {
+          joinResult.textContent = "❌ Session introuvable";
+        } else if (res.status === 401) {
+          joinResult.textContent = "❌ Mot de passe incorrect";
+        } else {
+          joinResult.textContent = "❌ Erreur lors de la connexion à la session";
+        }
         return;
       }
 
       const data = await res.json();
       currentSessionCode = data.code;
-      joinResult.textContent = "✔ Rejoint la session : " + data.code;
+      joinResult.textContent = password
+        ? "✔ Rejoint la session protégée : " + data.code
+        : "✔ Rejoint la session : " + data.code;
       setSessionCodeDisplay(currentSessionCode);
 
       socket.emit('join-session', currentSessionCode);
       addChatLine("[SYSTEM] Rejoint la session " + currentSessionCode + ".");
+    });
+
+    // ---- Invitation par e-mail ----
+    sendInviteBtn.addEventListener('click', async () => {
+      const email = inviteEmailInput.value.trim();
+
+      if (!currentSessionCode) {
+        inviteStatus.textContent = "❌ Crée ou rejoins d’abord une session.";
+        return;
+      }
+      if (!email) {
+        inviteStatus.textContent = "❌ Entre une adresse e-mail.";
+        return;
+      }
+
+      inviteStatus.textContent = "Envoi de l’e-mail...";
+      sendInviteBtn.disabled = true;
+
+      try {
+        const res = await fetch('/api/send-invite', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            sessionCode: currentSessionCode,
+            toEmail: email
+          })
+        });
+
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          inviteStatus.textContent = "❌ " + (data.error || "Erreur lors de l’envoi de l’e-mail.");
+        } else {
+          inviteStatus.textContent = "✔ Lien envoyé par e-mail.";
+        }
+      } catch (err) {
+        console.error(err);
+        inviteStatus.textContent = "❌ Impossible d’envoyer l’e-mail.";
+      } finally {
+        sendInviteBtn.disabled = false;
+      }
     });
 
     // ---- Envoyer message ----
@@ -702,10 +995,10 @@
         return;
       }
 
-      // Limite raisonnable pour éviter les abus
-      const MAX_SIZE = 200 * 1024 * 1024; // 200 Mo
+      // Limite gratuite côté front (doit matcher le backend)
+      const MAX_SIZE = 20 * 1024 * 1024; // 20 Mo
       if (selectedFile.size > MAX_SIZE) {
-        fileStatus.textContent = "❌ Fichier trop gros pour ce mode (max 200 Mo).";
+        fileStatus.textContent = "❌ En version gratuite, la taille max par fichier est de 20 Mo.";
         return;
       }
 
@@ -731,7 +1024,7 @@
         const reader = new FileReader();
 
         reader.onload = (e) => {
-          const chunkBuffer = e.target.result; // ArrayBuffer
+          const chunkBuffer = e.target.result;
 
           socket.emit('file-chunk', {
             code: currentSessionCode,
@@ -776,6 +1069,12 @@
       addChatLine(`[${time}] ${payload.from}: ${payload.text}`);
     });
 
+    // ---- Erreur côté serveur sur l'envoi de fichier (limites, etc.) ----
+    socket.on('file-error', (message) => {
+      fileStatus.textContent = "❌ " + message;
+      sendFileBtn.disabled = false;
+    });
+
     // ---- Réception métadonnées fichier ----
     socket.on('file-meta', (payload) => {
       const { fileId, fileName, fileType, fileSize } = payload;
@@ -787,7 +1086,6 @@
         chunks: []
       };
 
-      // On laisse juste un petit log visuel si besoin
       console.log('📥 Réception fichier :', fileName, fileSize);
     });
 
@@ -846,6 +1144,8 @@
 
     // ---- Auto-join via ?code= ----
     window.addEventListener('load', async () => {
+      updateUserUi(); // initialise l'état user + bouton Google
+
       const urlCode = getUrlParam('code');
       if (!urlCode) return;
 
@@ -854,11 +1154,15 @@
       const res = await fetch('/api/join-session', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code: urlCode })
+        body: JSON.stringify({ code: urlCode, password: null })
       });
 
       if (!res.ok) {
-        joinResult.textContent = "❌ Session introuvable (via URL)";
+        if (res.status === 401) {
+          joinResult.textContent = "🔒 Cette session est protégée par mot de passe. Entre le mot de passe puis clique sur Rejoindre.";
+        } else {
+          joinResult.textContent = "❌ Session introuvable (via URL)";
+        }
         return;
       }
 
